@@ -58,9 +58,10 @@ def get_spotify_devices(spotify_media_player: SpotifyMediaPlayer):
             spotify_devices = spotify_media_player.data.client.devices()
 
         _LOGGER.debug("get_spotify_devices: %s", spotify_devices)
-        
+
         return spotify_devices
     return []
+
 
 def get_spotify_install_status(hass):
 
@@ -92,6 +93,17 @@ def get_cast_devices(hass):
     return cast_infos
 
 
+def get_user_account(hass):
+    platforms = entity_platform.async_get_platforms(hass, "spotify")
+
+    for platform in platforms:
+        if platform.domain != "media_player":
+            continue
+
+        for entity in platform.entities.values():
+            _LOGGER.debug(f"{entity}, {type(entity)}")
+
+
 # Async wrap sync function
 def async_wrap(func):
     @wraps(func)
@@ -103,7 +115,8 @@ def async_wrap(func):
 
     return run
 
-def get_search_results(search:str, spotify_client:spotipy.Spotify, country:str=None) -> str:
+
+def get_search_results(search: str, spotify_client: spotipy.Spotify, country: str = None) -> str:
 
     _LOGGER.debug("using search query to find uri")
 
@@ -142,10 +155,11 @@ def get_search_results(search:str, spotify_client:spotipy.Spotify, country:str=N
 
     return bestMatch['uri']
 
-def get_random_playlist_from_category(spotify_client:spotipy.Spotify, category:str, country:str=None, limit:int=20) -> str:
-    
+
+def get_random_playlist_from_category(spotify_client: spotipy.Spotify, category: str, country: str = None, limit: int = 20) -> str:
+
     if country is None:
-        
+
         _LOGGER.debug(f"Get random playlist among {limit} playlists from category {category}, no country specified.")
 
     else:
@@ -156,7 +170,7 @@ def get_random_playlist_from_category(spotify_client:spotipy.Spotify, category:s
         if country.upper() not in spotify_client.country_codes:
             _LOGGER.error(f"{country} is not a valid country code")
             return None
-    
+
     # get list of playlist from category and localisation provided
     try:
         playlists = spotify_client.category_playlists(category_id=category, country=country, limit=limit)["playlists"]["items"]
@@ -171,8 +185,9 @@ def get_random_playlist_from_category(spotify_client:spotipy.Spotify, category:s
 
     return chosen['uri']
 
+
 def is_valid_uri(uri: str) -> bool:
-    
+
     # list of possible types
     types = [
         "artist",
@@ -189,7 +204,7 @@ def is_valid_uri(uri: str) -> bool:
     # validate number of sub elements
     if elems[1].lower() == "user":
         elems = elems[0:1] + elems[3:]
-        types = [ "playlist" ]
+        types = ["playlist"]
         _LOGGER.debug(f"Excluding user information from the Spotify URI validation. Only supported for playlists")
 
     # support playing a user's liked songs list (spotify:user:username:collection)
@@ -211,9 +226,10 @@ def is_valid_uri(uri: str) -> bool:
 
     if "?" in elems[2]:
         _LOGGER.warning(f"{elems[2]} contains query character. This should work, but you should probably remove it and anything after.")
-    
+
     # return True if all test passes
     return True
 
-def is_empty_str(string:str) -> bool:
+
+def is_empty_str(string: str) -> bool:
     return string is None or string.strip() == ""

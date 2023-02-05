@@ -14,7 +14,8 @@ from homeassistant.util import dt
 from .helpers import get_cast_devices
 from .const import (
     DOMAIN,
-    CONF_SPOTIFY_COUNTRY
+    CONF_SPOTIFY_COUNTRY,
+    CONF_USERS
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -23,7 +24,7 @@ SENSOR_SCAN_INTERVAL_SECS = 60
 SCAN_INTERVAL = timedelta(seconds=SENSOR_SCAN_INTERVAL_SECS)
 
 
-def setup_platform(hass:ha_core.HomeAssistant, config:collections.OrderedDict, add_devices, discovery_info=None):
+def setup_platform(hass: ha_core.HomeAssistant, config: collections.OrderedDict, add_devices, discovery_info=None):
 
     try:
         country = config[CONF_SPOTIFY_COUNTRY]
@@ -32,6 +33,7 @@ def setup_platform(hass:ha_core.HomeAssistant, config:collections.OrderedDict, a
 
     add_devices([ChromecastDevicesSensor(hass)])
     add_devices([ChromecastPlaylistSensor(hass, country)])
+    add_devices([UserAccountSensor(hass, config[CONF_USERS])])
 
 
 class ChromecastDevicesSensor(SensorEntity):
@@ -116,7 +118,37 @@ class ChromecastPlaylistSensor(SensorEntity):
         resp = self.hass.data[DOMAIN]["controller"].get_playlists(
             account, playlist_type, country_code, locale, limit
         )
-        self._attributes["playlists"] = [{ "uri": x['uri'], "name": x['name']} for x in resp['items'] ]
+        self._attributes["playlists"] = [{"uri": x['uri'], "name": x['name']} for x in resp['items']]
 
         self._attributes["last_update"] = dt.now().isoformat("T")
         self._state = STATE_OK
+
+
+class UserAccountSensor(SensorEntity):
+    """Sensor entity to list the user account setup with spotcast"""
+
+    def __init__(self, hass: ha_core, users: list) -> None:
+        self.hass = hass
+        self._state = STATE_UNKNOWN
+        self._users = users
+        self._attributes = {
+            "entities": [],
+            "users": []
+        }
+        _LOGGER.debug("initiating User Account Sensor")
+
+    @property
+    def name(self):
+        return "User Account sensor"
+
+    @property
+    def state(self):
+        return self._state
+
+    @property
+    def extra_state_attributes(self):
+        return self._attributes
+
+    def update(self):
+        _LOGGER.debug("Getting user accounts")
+        users = self._users
